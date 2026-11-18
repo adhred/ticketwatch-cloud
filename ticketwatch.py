@@ -136,13 +136,17 @@ class BookMyShow:
     name = "BookMyShow"
     BASE = "https://in.bookmyshow.com"
 
-    def __init__(self, http: Http, city: str) -> None:
+    def __init__(self, http: Http, city: str, code: str = "") -> None:
         self.http = http
         self.city = city
+        self.code = code
         self._region: tuple[str, str] | None = None
 
     def region(self) -> tuple[str, str]:
         if self._region:
+            return self._region
+        if self.code:   # set in config.toml, no lookup needed
+            self._region = (self.code, slugify(self.city))
             return self._region
         cache = HOME / ".bms_region.json"
         try:
@@ -335,7 +339,8 @@ def load_config() -> dict:
         ))
     if not watches:
         raise SystemExit("config.toml has no [[watch]] entries")
-    return {"city": cfg.get("city", "hyderabad"), "every": int(cfg.get("check_every_minutes", 5)),
+    return {"city": cfg.get("city", "hyderabad"), "bms_region": str(cfg.get("bms_region_code", "")),
+            "every": int(cfg.get("check_every_minutes", 5)),
             "mac": cfg.get("notify", {}).get("mac", True), "watches": watches, "secrets": secrets}
 
 
@@ -409,7 +414,7 @@ def check(cfg: dict, dry_run: bool = False) -> None:
     fails: dict = state.setdefault("failures", {})
     paused: dict = state.setdefault("paused_until", {})
     http = Http()
-    sources = {"bms": BookMyShow(http, cfg["city"]), "district": District(http, cfg["city"])}
+    sources = {"bms": BookMyShow(http, cfg["city"], cfg["bms_region"]), "district": District(http, cfg["city"])}
 
     # One fetch per theatre, covering the dates any watch wants there.
     targets: dict[tuple[str, str], list[Watch]] = {}
@@ -482,6 +487,7 @@ def check(cfg: dict, dry_run: bool = False) -> None:
     for k in [k for k in seen if k.rsplit("|", 1)[-1] < today]:
         del seen[k]
     state["last_check"] = datetime.now(IST).isoformat(timespec="seconds")
+    state["last_errors"] = errors
     if not dry_run:
         save_state(state)
     log(f"check done: {found} new alert(s)" + (" [dry run, nothing sent or saved]" if dry_run else ""))
@@ -579,7 +585,7 @@ def main() -> None:
             time.sleep(cfg["every"] * 60 + random.uniform(-30, 30))
     elif a.cmd == "status":
         s = load_state()
-        print(json.dumps({k: s.get(k) for k in ("last_check", "failures", "paused_until")}, indent=1))
+        print(json.dumps({k: s.get(k) for k in ("last_check", "failures", "paused_until", "last_errors")}, indent=1))
         print(f"{len(s.get('alerted', {}))} movie/date openings already alerted")
     elif a.cmd == "test-alert":
         notify(cfg, "🎟 ticketwatch test", "If you see this, alerts work.", "https://in.bookmyshow.com")

@@ -1,5 +1,6 @@
 # See config.example.toml for all options.
 city = "hyderabad"
+bms_region_code = "HYD"   # BookMyShow city code; skips a lookup request
 check_every_minutes = 1
 
 [notify]
