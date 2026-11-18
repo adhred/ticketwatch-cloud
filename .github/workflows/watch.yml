@@ -35,4 +35,6 @@ jobs:
             echo "::error::Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID under Settings > Secrets and variables > Actions"
             exit 1
           fi
+          # After a push (new code or config), confirm on Telegram that the cloud copy restarted.
+          if [ "${{ github.event_name }}" = "push" ]; then python ticketwatch.py test-alert; fi
           bash scripts/cloud-loop.sh
