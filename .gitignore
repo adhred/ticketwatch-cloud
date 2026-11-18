@@ -1,0 +1,7 @@
+.venv/
+state.json
+secrets.toml
+logs/
+.lock
+__pycache__/
+.bms_region.json

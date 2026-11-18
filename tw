@@ -1,0 +1,4 @@
+#!/bin/sh
+# Shortcut: ./tw theatres amb   ./tw check --dry-run   ./tw install
+DIR="$(cd "$(dirname "$0")" && pwd)"
+exec "$DIR/.venv/bin/python" "$DIR/ticketwatch.py" "$@"

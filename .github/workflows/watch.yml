@@ -1,0 +1,38 @@
+name: watch
+# Checks every minute, 24/7. Each run loops for up to ~6 hours; a new run starts every 30 minutes
+# (or on every push to main) and cancels the previous one, so a delayed cron never leaves a gap.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: watch
+  cancel-in-progress: true
+permissions:
+  contents: write   # only to save state.json on the `state` branch
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q curl_cffi
+      - name: Restore state
+        run: |
+          if git fetch -q origin state; then git show origin/state:state.json > state.json; else echo "no saved state yet"; fi
+      - name: Check every minute
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TW_LABEL: cloud
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "::error::Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID under Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          bash scripts/cloud-loop.sh

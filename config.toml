@@ -1,0 +1,22 @@
+# See config.example.toml for all options.
+city = "hyderabad"
+check_every_minutes = 1
+
+[notify]
+mac = true   # phone alerts are in secrets.toml (ntfy)
+
+# Avengers: Doomsday, English, 17 Dec, PCX screen at Prasads
+[[watch]]
+movie = "Avengers: Doomsday"
+languages = ["English"]
+formats = ["PCX"]
+dates = ["2026-12-17", "2026-12-18"]
+theatres = ["bms:PRHN"]    # Prasads Multiplex (BookMyShow only)
+
+# Avengers: Doomsday, English, 17 Dec, Dolby Cinema screen at Allu Cinemas
+[[watch]]
+movie = "Avengers: Doomsday"
+languages = ["English"]
+formats = ["Dolby Cinema"]
+dates = ["2026-12-17", "2026-12-18"]
+theatres = ["bms:ALUC"]    # ALLU Cinemas: Kokapet (BookMyShow only)

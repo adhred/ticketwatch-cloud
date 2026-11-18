@@ -1,0 +1,21 @@
+# City as BookMyShow and District name it: hyderabad, chennai, bengaluru, vijayawada, ...
+city = "hyderabad"
+
+# How often the background job checks (minutes). Keep it at 5 or more to stay polite.
+check_every_minutes = 5
+
+[notify]
+mac = true   # macOS notification with sound
+# Phone alerts (ntfy / Telegram) are set in secrets.toml, see README.md.
+
+# One [[watch]] block per thing you want alerts for. Copy the block to add more.
+[[watch]]
+movie = "Peddi"            # part of the title; "*" means any movie at these theatres
+languages = ["Telugu"]     # optional, empty = any language
+formats = []               # optional, e.g. ["IMAX"], ["Dolby", "4DX"]; empty = any
+dates = []                 # optional, e.g. ["2026-12-18", "2026-12-19"]; empty = any date
+# Get these ids from:  ./tw theatres <part of theatre name>
+theatres = [
+  "bms:AMBH",              # AMB Cinemas: Gachibowli (BookMyShow)
+  "district:1022263",      # PVR Superplex Inorbit (District)
+]
