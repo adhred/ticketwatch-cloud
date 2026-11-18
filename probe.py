@@ -25,3 +25,18 @@ for browser in ("chrome", "safari"):
         except Exception as e:
             print(f"{browser:7} {name:18} ERROR {e}")
 print(f"{ok}/{2 * len(tests)} succeeded")
+
+# Plain HTTP, no browser fingerprint (what Google Apps Script's UrlFetchApp would send).
+import urllib.request
+for name, (url, params) in list(tests.items())[:2]:
+    from urllib.parse import urlencode
+    req = urllib.request.Request(f"{url}?{urlencode(params)}", headers={
+        "Accept": "application/json", "x-app-code": "WEB", "x-region-code": "HYD",
+        "User-Agent": "Mozilla/5.0 (compatible; Google-Apps-Script)"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            body = r.read().decode()
+            print(f"plain   {name:18} HTTP {r.status} {'OK' if 'ShowDetails' in body else 'odd'}")
+    except Exception as e:
+        print(f"plain   {name:18} FAILED {e}")
+print("plain done")
