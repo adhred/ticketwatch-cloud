@@ -1,7 +1,10 @@
 name: probe
-on: workflow_dispatch
+on:
+  push:
+    branches: [main]
+    paths: [probe.py, .github/workflows/probe.yml]
 permissions:
-  contents: read
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -12,5 +15,11 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -q curl_cffi
-      - run: curl -s https://ipinfo.io/json | grep -E '"(ip|city|country|org)"' || true
-      - run: python probe.py
+      - name: Probe and save results to the probe-results branch
+        run: |
+          { date -u; curl -s https://ipinfo.io/json | grep -E '"(ip|city|country|org)"' || true; python probe.py; } > /tmp/result.txt 2>&1 || true
+          cat /tmp/result.txt
+          git config user.name "probe-bot"; git config user.email "probe-bot@users.noreply.github.com"
+          git checkout --orphan probe-results
+          git rm -rfq . ; cp /tmp/result.txt result.txt
+          git add result.txt && git commit -qm "probe result" && git push -qf origin probe-results
