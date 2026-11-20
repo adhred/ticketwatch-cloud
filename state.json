@@ -1,9 +1,28 @@
 {
- "alerted": {},
+ "alerted": {
+  "bms|ALUC|avengers doomsday|screen 2|01:15 PM|2026-12-17": "2026-11-20",
+  "bms|ALUC|avengers doomsday|screen 2|04:30 PM|2026-12-17": "2026-11-20",
+  "bms|ALUC|avengers doomsday|screen 2|07:45 PM|2026-12-17": "2026-11-20",
+  "bms|ALUC|avengers doomsday|screen 2|10:00 AM|2026-12-17": "2026-11-20",
+  "bms|ALUC|avengers doomsday|screen 2|10:00 AM|2026-12-18": "2026-11-20",
+  "bms|ALUC|avengers doomsday|screen 2|10:00 AM|2026-12-19": "2026-11-20",
+  "bms|ALUC|avengers doomsday|screen 2|10:00 AM|2026-12-20": "2026-11-20",
+  "bms|ALUC|avengers doomsday|screen 2|11:00 PM|2026-12-17": "2026-11-20",
+  "bms|ALUC|avengers doomsday|screen 2|11:00 PM|2026-12-18": "2026-11-20",
+  "bms|ALUC|avengers doomsday|screen 2|11:00 PM|2026-12-19": "2026-11-20",
+  "bms|ALUC|avengers doomsday|screen 2|11:00 PM|2026-12-20": "2026-11-20",
+  "bms|PRHN|avengers doomsday|screen 3|02:10 PM|2026-12-17": "2026-11-20",
+  "bms|PRHN|avengers doomsday|screen 3|05:15 PM|2026-12-17": "2026-11-20",
+  "bms|PRHN|avengers doomsday|screen 3|08:00 AM|2026-12-17": "2026-11-20",
+  "bms|PRHN|avengers doomsday|screen 3|08:20 PM|2026-12-17": "2026-11-20",
+  "bms|PRHN|avengers doomsday|screen 3|11:05 AM|2026-12-17": "2026-11-20",
+  "bms|PRHN|avengers doomsday|screen 3|11:25 PM|2026-12-17": "2026-11-20",
+  "bms|PRHN|avengers doomsday|screen 5|08:00 AM|2026-12-17": "2026-11-20"
+ },
  "failures": {
   "bms": 0
  },
- "last_check": "2026-11-20T13:28:52+05:30",
+ "last_check": "2026-11-20T13:32:35+05:30",
  "last_errors": {},
  "paused_until": {}
 }
