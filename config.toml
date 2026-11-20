@@ -4,20 +4,42 @@ bms_region_code = "HYD"   # BookMyShow city code; skips a lookup request
 check_every_minutes = 1
 
 [notify]
-mac = true   # phone alerts are in secrets.toml (ntfy)
+mac = true   # phone alerts are in secrets.toml (Telegram)
 
-# Avengers: Doomsday, English, 17 Dec, PCX screen at Prasads
+# Every new show (new screen or added showtime) at these theatres alerts once.
+# priority = "high" watches are the top choices and get a 🚨 alert; the rest get 🎟.
+# Checks stop by themselves after the last date below.
+
+# --- Avengers: Doomsday, 17-21 Dec ---
 [[watch]]
+name = "PCX / Dolby Cinema"
+priority = "high"
 movie = "Avengers: Doomsday"
 languages = ["English"]
-formats = ["PCX"]
-dates = ["2026-12-17", "2026-12-18"]
-theatres = ["bms:PRHN"]    # Prasads Multiplex (BookMyShow only)
+formats = ["PCX", "Dolby Cinema"]   # PCX is at Prasads, Dolby Cinema at Allu
+dates = ["2026-12-17", "2026-12-18", "2026-12-19", "2026-12-20", "2026-12-21"]
+theatres = ["bms:PRHN", "bms:ALUC"]   # Prasads Multiplex, ALLU Cinemas Kokapet
 
-# Avengers: Doomsday, English, 17 Dec, Dolby Cinema screen at Allu Cinemas
 [[watch]]
+name = "other screens"
 movie = "Avengers: Doomsday"
 languages = ["English"]
-formats = ["Dolby Cinema"]
-dates = ["2026-12-17", "2026-12-18"]
-theatres = ["bms:ALUC"]    # ALLU Cinemas: Kokapet (BookMyShow only)
+dates = ["2026-12-17", "2026-12-18", "2026-12-19", "2026-12-20", "2026-12-21"]
+theatres = ["bms:PRHN", "bms:ALUC"]
+
+# --- Dune 3, 18-21 Dec (not on BookMyShow yet; "Dune" matches whatever title it gets) ---
+[[watch]]
+name = "PCX / Dolby Cinema"
+priority = "high"
+movie = "Dune"
+languages = ["English"]
+formats = ["PCX", "Dolby Cinema"]
+dates = ["2026-12-18", "2026-12-19", "2026-12-20", "2026-12-21"]
+theatres = ["bms:PRHN", "bms:ALUC"]
+
+[[watch]]
+name = "other screens"
+movie = "Dune"
+languages = ["English"]
+dates = ["2026-12-18", "2026-12-19", "2026-12-20", "2026-12-21"]
+theatres = ["bms:PRHN", "bms:ALUC"]

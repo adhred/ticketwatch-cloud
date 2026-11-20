@@ -23,6 +23,10 @@ save_state() {
 
 last="" n=0
 while [ "$(date +%s)" -lt "$end" ]; do
+  if python ticketwatch.py finished; then
+    echo "All watched dates have passed; stopping without starting another run."
+    exit 0
+  fi
   start=$(date +%s)
   python ticketwatch.py check || echo "check crashed (exit $?)"
   n=$((n + 1))

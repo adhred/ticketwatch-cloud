@@ -85,7 +85,7 @@ class Show:
     time: str   # 10:30 AM
     seats: str
     link: str
-
+    screen: str = ""   # "SCREEN 6"; part of what makes a show new
 
 class Http:
     """Browser-fingerprinted session with polite pacing between requests."""
@@ -222,6 +222,7 @@ class BookMyShow:
                                                      st.get("ScreenName")) if x),
                             date=iso(dt), time=st.get("ShowTime") or f"{dt[8:10]}:{dt[10:]}",
                             seats=BMS_AVAIL.get(str(st.get("AvailStatus")), ""), link=link,
+                            screen=st.get("ScreenName", ""),
                         ))
         return out, dates
 
@@ -287,6 +288,7 @@ class District:
                     fmt=" ".join(x for x in (s.get("scrnFmt"), s.get("audi")) if x),
                     date=date, time=start.strftime("%I:%M %p"),
                     seats=seats, link=f"{self.BASE}/movies/{slugify(cname)}-CD{cid}?fromdate={date}",
+                    screen=s.get("audi", ""),
                 ))
         return out, dates
 
@@ -300,6 +302,8 @@ class Watch:
     formats: list[str]
     dates: list[str]
     theatres: list[tuple[str, str]]   # (platform, id)
+    name: str = ""
+    high: bool = False                # priority = "high": the screens you really want
 
     def wants_date(self, d: str) -> bool:
         return not self.dates or d in self.dates
@@ -336,6 +340,7 @@ def load_config() -> dict:
             movie=str(w.get("movie", "*")).strip() or "*",
             languages=list(w.get("languages", [])), formats=list(w.get("formats", [])),
             dates=[str(d) for d in w.get("dates", [])], theatres=theatres,
+            name=str(w.get("name", "")), high=str(w.get("priority", "normal")).lower() == "high",
         ))
     if not watches:
         raise SystemExit("config.toml has no [[watch]] entries")
@@ -408,7 +413,16 @@ def show_line(s: Show) -> str:
 
 # ---------- check ----------
 
+def finished(cfg: dict) -> bool:
+    """True once every watch has dates and they are all in the past."""
+    today = datetime.now(IST).strftime("%Y-%m-%d")
+    return all(w.dates for w in cfg["watches"]) and max(d for w in cfg["watches"] for d in w.dates) < today
+
+
 def check(cfg: dict, dry_run: bool = False) -> None:
+    if finished(cfg):
+        log("all watched dates have passed; nothing to check")
+        return
     state = load_state()
     seen: dict = state.setdefault("alerted", {})
     fails: dict = state.setdefault("failures", {})
@@ -445,27 +459,43 @@ def check(cfg: dict, dry_run: bool = False) -> None:
             errors[platform] = f"{type(e).__name__}: {e}"
             continue
 
-        groups: dict[str, list[Show]] = {}
+        # Remember each show (screen + time) so a new screen or an added showtime alerts too,
+        # even when other shows that day already alerted. High-priority watches win.
+        ordered = sorted(watches, key=lambda w: not w.high)
+        groups: dict[tuple, list[Show]] = {}
+        new_keys: dict[tuple, list[str]] = {}
         now = datetime.now(IST).strftime("%Y-%m-%d %H:%M")
+        matched = 0
         for s in shows:
-            if show_start(s) >= now and any(w.matches(s) for w in watches):
-                groups.setdefault(f"{platform}|{tid}|{norm(s.movie)}|{s.date}", []).append(s)
-        log(f"{src.name} {tid}: {len(shows)} shows, {len(groups)} matching movie/date groups")
-        for key, group in sorted(groups.items()):
+            w = next((w for w in ordered if w.matches(s)), None)
+            if w is None or show_start(s) < now:
+                continue
+            matched += 1
+            key = f"{platform}|{tid}|{norm(s.movie)}|{norm(s.screen)}|{s.time}|{s.date}"
             if key in seen:
                 continue
+            g = (not w.high, s.date, norm(s.movie), s.screen, w.name)
+            groups.setdefault(g, []).append(s)
+            new_keys.setdefault(g, []).append(key)
+        log(f"{src.name} {tid}: {len(shows)} shows, {matched} matching, {sum(map(len, groups.values()))} new")
+        for g, group in sorted(groups.items()):
             found += 1
             group.sort(key=show_start)
             s0 = group[0]
-            title = f"🎟 {s0.movie}: bookings open"
+            high = not g[0]
+            if high:
+                title = f"🚨 {s0.movie}: {g[4] or 'top-choice screen'} OPEN"
+            else:
+                title = f"🎟 {s0.movie}: new shows" + (f" ({g[4]})" if g[4] else "")
             lines = [show_line(s) for s in group[:MAX_LINES]]
             if len(group) > MAX_LINES:
                 lines.append(f"+{len(group) - MAX_LINES} more shows")
             body = f"{s0.theatre}\n{pretty_date(s0.date)} on {s0.platform}\n" + "\n".join(lines)
             log(f"ALERT {title} | {body.replace(chr(10), ' | ')} | {s0.link}")
             if not dry_run:
-                notify(cfg, title, body, s0.link)
-                seen[key] = today
+                notify(cfg, title, body, s0.link, urgent=high)
+                for k in new_keys[g]:
+                    seen[k] = today
 
     # Health: alert once when a site keeps failing, and once when it recovers.
     for platform in {p for p, _ in targets}:
@@ -563,7 +593,7 @@ def main() -> None:
     t.add_argument("--city")
     c = sub.add_parser("check")
     c.add_argument("--dry-run", action="store_true")
-    for name in ("run", "status", "test-alert", "install", "uninstall"):
+    for name in ("run", "status", "test-alert", "install", "uninstall", "finished"):
         sub.add_parser(name)
     a = p.parse_args()
 
@@ -576,6 +606,8 @@ def main() -> None:
         return cmd_uninstall()
 
     cfg = load_config()
+    if a.cmd == "finished":   # exit 0 when all watched dates are past (used by the cloud loop)
+        sys.exit(0 if finished(cfg) else 1)
     if a.cmd == "check":
         trim_log()
         locked_check(cfg, a.dry_run)
