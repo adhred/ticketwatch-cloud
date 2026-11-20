@@ -33,3 +33,11 @@ while [ "$(date +%s)" -lt "$end" ]; do
   left=$(( 60 - ($(date +%s) - start) ))
   sleep $(( left > 5 ? left : 5 ))
 done
+
+# Hand over to a fresh run instead of waiting for GitHub's cron, which is often hours late.
+# workflow_dispatch is one of the few events GITHUB_TOKEN is allowed to trigger.
+if [ -n "${GH_TOKEN:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
+  save_state
+  gh workflow run watch.yml --repo "$GITHUB_REPOSITORY" --ref "${GITHUB_REF_NAME:-main}" \
+    && echo "started the next run" || echo "::warning::could not start the next run; cron will restart it"
+fi
