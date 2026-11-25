@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GitHub Actions entry point: run `check` every minute for up to LOOP_MINUTES, saving state.json
+# GitHub Actions entry point: run `check` every CHECK_SECONDS (default 30) for up to LOOP_MINUTES, saving state.json
 # to the `state` branch when alerts/failures change (and every 15 checks as a heartbeat).
 # The workflow restarts every 30 minutes and cancels the previous run, so checks are near continuous.
 set -u
@@ -34,7 +34,7 @@ while [ "$(date +%s)" -lt "$end" ]; do
     sig=$(python -c "import json;s=json.load(open('state.json'));print(json.dumps([s.get('alerted'),s.get('failures')],sort_keys=True))" 2>/dev/null)
     if [ "$sig" != "$last" ] || [ $((n % 15)) -eq 0 ]; then save_state; last=$sig; fi
   fi
-  left=$(( 60 - ($(date +%s) - start) ))
+  left=$(( ${CHECK_SECONDS:-30} - ($(date +%s) - start) ))
   sleep $(( left > 5 ? left : 5 ))
 done
 

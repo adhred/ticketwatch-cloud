@@ -86,6 +86,32 @@ class Show:
     seats: str
     link: str
     screen: str = ""   # "SCREEN 6"; part of what makes a show new
+    # Seat class -> level (3 available, 2 filling fast, 1 almost full, 0 sold out).
+    # Used to spot released (unblocked) seats on shows we already know about.
+    levels: dict | None = None
+
+
+LEVEL_NAME = {3: "available", 2: "filling fast", 1: "almost full", 0: "sold out"}
+RELEASE_COOLDOWN = 15 * 60   # seconds; stops a class flapping sold out <-> open from spamming
+
+
+def released(before: dict, after: dict) -> list[tuple[str, int, int]]:
+    """Seat classes that came back: sold out -> anything, or almost full -> available."""
+    out = []
+    for cat, now in after.items():
+        was = before.get(cat)
+        if was is not None and ((was == 0 and now > 0) or (was == 1 and now == 3)):
+            out.append((cat, was, now))
+    return out
+
+
+def _level(v) -> int | None:
+    try:
+        n = int(str(v))
+    except ValueError:
+        return None
+    return n if n in LEVEL_NAME else None
+
 
 class Http:
     """Browser-fingerprinted session with polite pacing between requests."""
@@ -214,6 +240,13 @@ class BookMyShow:
                         dt = str(st.get("ShowDateTime", ""))
                         if len(dt) != 12:
                             continue
+                        levels = {}
+                        for c in st.get("Categories") or []:
+                            lv = _level(c.get("AvailStatus"))
+                            if lv is not None:
+                                levels[c.get("PriceDesc") or c.get("AreaCatCode") or "seats"] = lv
+                        if not levels and _level(st.get("AvailStatus")) is not None:
+                            levels["all seats"] = _level(st.get("AvailStatus"))
                         out.append(Show(
                             platform=self.name, theatre_id=venue, theatre=vname,
                             movie=ev.get("EventTitle") or ch.get("EventName", ""),
@@ -222,7 +255,7 @@ class BookMyShow:
                                                      st.get("ScreenName")) if x),
                             date=iso(dt), time=st.get("ShowTime") or f"{dt[8:10]}:{dt[10:]}",
                             seats=BMS_AVAIL.get(str(st.get("AvailStatus")), ""), link=link,
-                            screen=st.get("ScreenName", ""),
+                            screen=st.get("ScreenName", ""), levels=levels,
                         ))
         return out, dates
 
@@ -288,7 +321,7 @@ class District:
                     fmt=" ".join(x for x in (s.get("scrnFmt"), s.get("audi")) if x),
                     date=date, time=start.strftime("%I:%M %p"),
                     seats=seats, link=f"{self.BASE}/movies/{slugify(cname)}-CD{cid}?fromdate={date}",
-                    screen=s.get("audi", ""),
+                    screen=s.get("audi", ""), levels={"all seats": 3 if avail else 0},
                 ))
         return out, dates
 
@@ -427,6 +460,8 @@ def check(cfg: dict, dry_run: bool = False) -> None:
     seen: dict = state.setdefault("alerted", {})
     fails: dict = state.setdefault("failures", {})
     paused: dict = state.setdefault("paused_until", {})
+    levels: dict = state.setdefault("levels", {})          # show key -> {seat class: level}
+    release_at: dict = state.setdefault("released_at", {})  # show key -> last release alert time
     http = Http()
     sources = {"bms": BookMyShow(http, cfg["city"], cfg["bms_region"]), "district": District(http, cfg["city"])}
 
@@ -472,6 +507,19 @@ def check(cfg: dict, dry_run: bool = False) -> None:
                 continue
             matched += 1
             key = f"{platform}|{tid}|{norm(s.movie)}|{norm(s.screen)}|{s.time}|{s.date}"
+            back = released(levels.get(key, {}), s.levels or {})
+            if s.levels:
+                levels[key] = s.levels
+            if back and time.time() - release_at.get(key, 0) >= RELEASE_COOLDOWN:
+                found += 1
+                title = f"🔓 {s.movie}: seats released"
+                cls = "\n".join(f"{c}: {LEVEL_NAME[a]} → {LEVEL_NAME[b]}" for c, a, b in back)
+                body = (f"{s.theatre}\n{pretty_date(s.date)} {s.time} · {s.screen or s.fmt}\n{cls}\n"
+                        f"Book fast, these go in seconds.")
+                log(f"ALERT {title} | {body.replace(chr(10), ' | ')} | {s.link}")
+                if not dry_run:
+                    notify(cfg, title, body, s.link, urgent=True)
+                    release_at[key] = time.time()
             if key in seen:
                 continue
             g = (not w.high, s.date, norm(s.movie), s.screen, w.name)
@@ -516,6 +564,9 @@ def check(cfg: dict, dry_run: bool = False) -> None:
     # Forget alerts for past dates so the state file stays small.
     for k in [k for k in seen if k.rsplit("|", 1)[-1] < today]:
         del seen[k]
+    for d in (levels, release_at):
+        for k in [k for k in d if k.rsplit("|", 1)[-1] < today]:
+            del d[k]
     state["last_check"] = datetime.now(IST).isoformat(timespec="seconds")
     state["last_errors"] = errors
     if not dry_run:
