@@ -17,13 +17,3 @@ languages = ["English"]
 formats = ["PCX", "Dolby Cinema"]   # PCX is at Prasads, Dolby Cinema at Allu
 dates = ["2026-12-17", "2026-12-18", "2026-12-19", "2026-12-20", "2026-12-21"]
 theatres = ["bms:PRHN", "bms:ALUC"]   # Prasads Multiplex, ALLU Cinemas Kokapet
-
-# Dune 3 is not on BookMyShow yet; "Dune" matches whatever title it gets.
-[[watch]]
-name = "PCX / Dolby Cinema"
-priority = "high"
-movie = "Dune"
-languages = ["English"]
-formats = ["PCX", "Dolby Cinema"]
-dates = ["2026-12-18", "2026-12-19", "2026-12-20", "2026-12-21"]
-theatres = ["bms:PRHN", "bms:ALUC"]
