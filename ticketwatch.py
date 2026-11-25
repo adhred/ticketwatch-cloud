@@ -89,6 +89,7 @@ class Show:
     # Seat class -> level (3 available, 2 filling fast, 1 almost full, 0 sold out).
     # Used to spot released (unblocked) seats on shows we already know about.
     levels: dict | None = None
+    show_link: str = ""   # straight to this show's seat map, when the site gives us an id
 
 
 LEVEL_NAME = {3: "available", 2: "filling fast", 1: "almost full", 0: "sold out"}
@@ -247,6 +248,9 @@ class BookMyShow:
                                 levels[c.get("PriceDesc") or c.get("AreaCatCode") or "seats"] = lv
                         if not levels and _level(st.get("AvailStatus")) is not None:
                             levels["all seats"] = _level(st.get("AvailStatus"))
+                        ecode, sid = ch.get("EventCode"), st.get("SessionId")
+                        seat_map = (f"{self.BASE}/movies/{slug}/seat-layout/{ecode}/{venue}/{sid}/{dt[:8]}"
+                                    if ecode and sid else "")
                         out.append(Show(
                             platform=self.name, theatre_id=venue, theatre=vname,
                             movie=ev.get("EventTitle") or ch.get("EventName", ""),
@@ -255,7 +259,7 @@ class BookMyShow:
                                                      st.get("ScreenName")) if x),
                             date=iso(dt), time=st.get("ShowTime") or f"{dt[8:10]}:{dt[10:]}",
                             seats=BMS_AVAIL.get(str(st.get("AvailStatus")), ""), link=link,
-                            screen=st.get("ScreenName", ""), levels=levels,
+                            screen=st.get("ScreenName", ""), levels=levels, show_link=seat_map,
                         ))
         return out, dates
 
@@ -379,7 +383,9 @@ def load_config() -> dict:
         raise SystemExit("config.toml has no [[watch]] entries")
     return {"city": cfg.get("city", "hyderabad"), "bms_region": str(cfg.get("bms_region_code", "")),
             "every": int(cfg.get("check_every_minutes", 5)),
-            "mac": cfg.get("notify", {}).get("mac", True), "watches": watches, "secrets": secrets}
+            "mac": cfg.get("notify", {}).get("mac", True),
+            "open_browser": cfg.get("notify", {}).get("open_browser", False),
+            "watches": watches, "secrets": secrets}
 
 
 def load_state() -> dict:
@@ -397,10 +403,18 @@ def save_state(state: dict) -> None:
 
 # ---------- notifications ----------
 
-def notify(cfg: dict, title: str, body: str, link: str | None = None, urgent: bool = True) -> None:
+def notify(cfg: dict, title: str, body: str, link: str | None = None, urgent: bool = True,
+           open_page: bool = False) -> None:
     sec = cfg["secrets"]
     if os.environ.get("TW_LABEL"):   # e.g. "cloud", so you can tell which copy sent it
         title = f"[{os.environ['TW_LABEL']}] {title}"
+    # Mac only: open the booking page in your browser (where you're logged in).
+    if (open_page and link and cfg["open_browser"] and sys.platform == "darwin"
+            and link.startswith(("https://in.bookmyshow.com/", "https://www.district.in/"))):
+        app = cfg["open_browser"] if isinstance(cfg["open_browser"], str) else ""
+        r = subprocess.run(["open", "-a", app, link] if app else ["open", link], check=False, capture_output=True)
+        if r.returncode and app:   # browser missing or renamed: fall back to the default one
+            subprocess.run(["open", link], check=False, capture_output=True)
     if cfg["mac"] and sys.platform == "darwin":
         script = ['on run argv', 'display notification (item 2 of argv) with title (item 1 of argv) '
                   'sound name "Glass"', 'end run']
@@ -516,9 +530,9 @@ def check(cfg: dict, dry_run: bool = False) -> None:
                 cls = "\n".join(f"{c}: {LEVEL_NAME[a]} → {LEVEL_NAME[b]}" for c, a, b in back)
                 body = (f"{s.theatre}\n{pretty_date(s.date)} {s.time} · {s.screen or s.fmt}\n{cls}\n"
                         f"Book fast, these go in seconds.")
-                log(f"ALERT {title} | {body.replace(chr(10), ' | ')} | {s.link}")
+                log(f"ALERT {title} | {body.replace(chr(10), ' | ')} | {s.show_link or s.link}")
                 if not dry_run:
-                    notify(cfg, title, body, s.link, urgent=True)
+                    notify(cfg, title, body, s.show_link or s.link, urgent=True, open_page=True)
                     release_at[key] = time.time()
             if key in seen:
                 continue
@@ -539,9 +553,10 @@ def check(cfg: dict, dry_run: bool = False) -> None:
             if len(group) > MAX_LINES:
                 lines.append(f"+{len(group) - MAX_LINES} more shows")
             body = f"{s0.theatre}\n{pretty_date(s0.date)} on {s0.platform}\n" + "\n".join(lines)
-            log(f"ALERT {title} | {body.replace(chr(10), ' | ')} | {s0.link}")
+            link = (s0.show_link or s0.link) if len(group) == 1 else s0.link
+            log(f"ALERT {title} | {body.replace(chr(10), ' | ')} | {link}")
             if not dry_run:
-                notify(cfg, title, body, s0.link, urgent=high)
+                notify(cfg, title, body, link, urgent=high, open_page=high)
                 for k in new_keys[g]:
                     seen[k] = today
 

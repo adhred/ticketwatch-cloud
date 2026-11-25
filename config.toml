@@ -5,6 +5,7 @@ check_every_minutes = 1
 
 [notify]
 mac = true   # phone alerts are in secrets.toml (Telegram)
+open_browser = "Brave Browser"   # Mac only: open the seat map in Brave when seats are released or a PCX/Dolby show opens (true = default browser, false = off)
 
 # Only PCX (Prasads) and Dolby Cinema (Allu) screens. Every new show on those screens,
 # a new date or an added showtime, alerts once. Checks stop by themselves after the last date.
