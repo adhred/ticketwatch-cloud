@@ -28,7 +28,19 @@
  "failures": {
   "bms": 0
  },
- "last_check": "2026-11-25T13:38:13+05:30",
+ "last_check": "2026-11-25T13:46:49+05:30",
  "last_errors": {},
- "paused_until": {}
+ "levels": {
+  "bms|PRHN|avengers doomsday|screen 6|08:00 AM|2026-12-18": {
+   "GOLD + 3D GlassL": 1
+  },
+  "bms|PRHN|avengers doomsday|screen 6|08:00 AM|2026-12-19": {
+   "GOLD + 3D GlassL": 1
+  },
+  "bms|PRHN|avengers doomsday|screen 6|08:00 AM|2026-12-20": {
+   "GOLD + 3D GlassL": 1
+  }
+ },
+ "paused_until": {},
+ "released_at": {}
 }
