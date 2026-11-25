@@ -18,13 +18,15 @@
   "bms|PRHN|avengers doomsday|screen 3|11:05 AM|2026-12-17": "2026-11-20",
   "bms|PRHN|avengers doomsday|screen 3|11:25 PM|2026-12-17": "2026-11-20",
   "bms|PRHN|avengers doomsday|screen 5|08:00 AM|2026-12-17": "2026-11-20",
+  "bms|PRHN|avengers doomsday|screen 6|08:00 AM|2026-12-18": "2026-11-25",
   "bms|PRHN|avengers doomsday|screen 6|08:00 AM|2026-12-19": "2026-11-24",
-  "bms|PRHN|avengers doomsday|screen 6|08:00 AM|2026-12-20": "2026-11-24"
+  "bms|PRHN|avengers doomsday|screen 6|08:00 AM|2026-12-20": "2026-11-24",
+  "bms|PRHN|dune part three|screen 6|11:05 AM|2026-12-18": "2026-11-25"
  },
  "failures": {
   "bms": 0
  },
- "last_check": "2026-11-25T11:52:37+05:30",
+ "last_check": "2026-11-25T11:57:37+05:30",
  "last_errors": {},
  "paused_until": {}
 }
